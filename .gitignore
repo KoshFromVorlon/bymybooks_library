@@ -1,0 +1,19 @@
+# Virtual Environment
+venv/
+.venv/
+
+# Python Cache
+*.pyc
+__pycache__/
+
+# Database
+instance/
+site.db
+*.sqlite3
+
+# Uploaded files (ignore user content)
+app/static/uploads/*
+app/static/avatars/*
+
+# Exception for default avatar (keep this file in git)
+!app/static/avatars/default.png

@@ -12,10 +12,8 @@ templates = Jinja2Templates(directory="app/templates")
 
 @app.get("/")
 def read_root(request: Request, db: Session = Depends(database.get_db)):
-    # Сортировка по sort_year гарантирует Гильгамеша в первой стопке
+    # Жесткая сортировка по ID (ровно как в файле seed_db.py)
     books = db.query(models.Book).join(models.Author).order_by(
-        models.Book.sort_year.asc(),
-        models.Author.full_name.asc(),
         models.Book.id.asc()
     ).all()
 

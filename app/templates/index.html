@@ -35,8 +35,10 @@
 
         .book-stack {
             display: flex;
-            flex-direction: column-reverse;
-            width: 700px; /* Книги стали ещё длиннее */
+            /* ИСПРАВЛЕНО: Теперь книги идут сверху вниз, как в списке */
+            flex-direction: column;
+            justify-content: flex-end; /* Опускаем стопку на деревянную полку */
+            width: 700px;
             position: relative;
             margin-bottom: -2px;
             align-items: center;
@@ -62,38 +64,34 @@
             filter: brightness(1.2);
         }
 
-        /* SVG ДЛЯ АДАПТИВНОГО КЕГЛЯ */
         .spine-svg {
             width: 100%;
             height: 100%;
             padding: 0 25px;
-            /* Важно: flex внутри SVG контейнера для распределения места */
             display: flex;
             align-items: center;
         }
 
-        /* Стили для внутренних SVG контейнеров */
         .title-svg-container {
-            flex: 1 1 auto; /* Занимает всё доступное место */
+            flex: 1 1 auto;
             height: 100%;
             margin-right: 15px;
-            overflow: hidden; /* На всякий случай */
+            overflow: hidden;
         }
 
         .meta-svg-container {
-            flex: 0 0 auto; /* Занимает только нужное место */
-            width: 240px; /* Фиксированная ширина для метаданных */
+            flex: 0 0 auto;
+            width: 240px;
             height: 100%;
             margin-left: 15px;
         }
-
 
         .gold-line {
             stroke: var(--gold);
             stroke-width: 2;
             stroke-linecap: round;
             filter: drop-shadow(0 0 5px var(--gold));
-            height: 60px; /* Фиксированная высота линии */
+            height: 60px;
             align-self: center;
         }
 
@@ -102,9 +100,8 @@
             font-weight: 800;
             text-transform: uppercase;
             font-family: 'EB Garamond', serif;
-            /* Начальный большой размер, JS его уменьшит при необходимости */
             font-size: 50px;
-            dominant-baseline: middle; /* Помогает с центрированием */
+            dominant-baseline: middle;
         }
 
         .text-meta {
@@ -112,13 +109,11 @@
             font-weight: 700;
             font-family: 'EB Garamond', serif;
             opacity: 0.9;
-            /* ИСПРАВЛЕНО: выравнивание по центру, чтобы год был строго под именем */
             text-anchor: middle;
         }
 
         .meta-author { font-size: 28px; }
         .meta-year { font-size: 22px; opacity: 0.7; }
-
 
         #global-cover-popup {
             position: fixed;
@@ -213,42 +208,26 @@
         popup.style.display = 'none';
     }
 
-    // === ЛОГИКА ПОДГОНКИ ТЕКСТА ===
-
-    // Функция, которая измеряет контент и подгоняет viewBox родительского SVG
     function fitSvgContent(svgElement, contentElement, align) {
-        // Получаем точные размеры контента (текста или группы)
         const bbox = contentElement.getBBox();
-
-        // Если контента нет или он нулевого размера, выходим
         if (bbox.width === 0 || bbox.height === 0) return;
 
-        // Добавляем небольшой отступ (padding), чтобы края букв не обрезались
         const paddingX = 5;
         const paddingY = 5;
 
-        // Формируем viewBox точно по размеру контента с учетом отступов
-        // x y width height
         const vBox = `${bbox.x - paddingX} ${bbox.y - paddingY} ${bbox.width + paddingX * 2} ${bbox.height + paddingY * 2}`;
 
         svgElement.setAttribute('viewBox', vBox);
-
-        // xMinYMid meet = выровнять влево, центрировать по вертикали, вписать пропорционально
-        // xMaxYMid meet = выровнять вправо, центрировать по вертикали, вписать пропорционально
         svgElement.setAttribute('preserveAspectRatio', `${align} meet`);
     }
 
-    // Ждем загрузки шрифта, чтобы измерения были точными
     document.fonts.ready.then(() => {
-        // 1. Подгоняем названия книг (выравнивание влево - xMin)
         document.querySelectorAll('.title-svg').forEach(svg => {
             const textElement = svg.querySelector('text');
             fitSvgContent(svg, textElement, 'xMinYMid');
         });
 
-        // 2. Подгоняем метаданные (выравнивание вправо - xMax)
         document.querySelectorAll('.meta-svg').forEach(svg => {
-            // Измеряем всю группу целиком, а не отдельные строки
             const groupElement = svg.querySelector('.meta-group');
             fitSvgContent(svg, groupElement, 'xMaxYMid');
         });
