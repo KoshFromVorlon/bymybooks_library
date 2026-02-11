@@ -67,13 +67,34 @@
             width: 100%;
             height: 100%;
             padding: 0 25px;
+            /* Важно: flex внутри SVG контейнера для распределения места */
+            display: flex;
+            align-items: center;
         }
+
+        /* Стили для внутренних SVG контейнеров */
+        .title-svg-container {
+            flex: 1 1 auto; /* Занимает всё доступное место */
+            height: 100%;
+            margin-right: 15px;
+            overflow: hidden; /* На всякий случай */
+        }
+
+        .meta-svg-container {
+            flex: 0 0 auto; /* Занимает только нужное место */
+            width: 240px; /* Фиксированная ширина для метаданных */
+            height: 100%;
+            margin-left: 15px;
+        }
+
 
         .gold-line {
             stroke: var(--gold);
             stroke-width: 2;
             stroke-linecap: round;
             filter: drop-shadow(0 0 5px var(--gold));
+            height: 60px; /* Фиксированная высота линии */
+            align-self: center;
         }
 
         .text-title {
@@ -81,6 +102,9 @@
             font-weight: 800;
             text-transform: uppercase;
             font-family: 'EB Garamond', serif;
+            /* Начальный большой размер, JS его уменьшит при необходимости */
+            font-size: 50px;
+            dominant-baseline: middle; /* Помогает с центрированием */
         }
 
         .text-meta {
@@ -88,7 +112,13 @@
             font-weight: 700;
             font-family: 'EB Garamond', serif;
             opacity: 0.9;
+            /* ИСПРАВЛЕНО: выравнивание по центру, чтобы год был строго под именем */
+            text-anchor: middle;
         }
+
+        .meta-author { font-size: 28px; }
+        .meta-year { font-size: 22px; opacity: 0.7; }
+
 
         #global-cover-popup {
             position: fixed;
@@ -122,18 +152,27 @@
                  onmouseleave="hideCover()"
                  onclick="location.href='/book/{{ book.id }}'">
 
-                <svg class="spine-svg" viewBox="0 0 1000 100" preserveAspectRatio="xMidYMid meet">
-                    <svg x="0" y="0" width="680" height="100" viewBox="0 0 500 100" preserveAspectRatio="xMinYMid meet">
-                        <text x="0" y="65" class="text-title" style="font-size: 45px;">{{ book.title }}</text>
+                <div class="spine-svg">
+
+                    <div class="title-svg-container">
+                        <svg class="title-svg" width="100%" height="100%">
+                            <text x="0" y="50%" class="text-title">{{ book.title }}</text>
+                        </svg>
+                    </div>
+
+                    <svg class="gold-line" width="2" height="60">
+                         <line x1="1" y1="0" x2="1" y2="60" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/>
                     </svg>
 
-                    <line x1="710" y1="20" x2="710" y2="80" class="gold-line" />
-
-                    <svg x="740" y="0" width="240" height="100" viewBox="0 0 240 100" preserveAspectRatio="xMaxYMid meet">
-                        <text x="240" y="50" class="text-meta" text-anchor="end" style="font-size: 28px;">{{ book.author.full_name }}</text>
-                        <text x="240" y="85" class="text-meta" text-anchor="end" style="font-size: 22px; opacity: 0.7;">{{ book.year_raw }}</text>
-                    </svg>
-                </svg>
+                    <div class="meta-svg-container">
+                        <svg class="meta-svg" width="100%" height="100%" overflow="visible">
+                            <g class="meta-group">
+                                <text x="0" y="0" class="text-meta meta-author">{{ book.author.full_name }}</text>
+                                <text x="0" y="30" class="text-meta meta-year">{{ book.year_raw }}</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
 
             </div>
             {% endfor %}
@@ -173,6 +212,47 @@
     function hideCover() {
         popup.style.display = 'none';
     }
+
+    // === ЛОГИКА ПОДГОНКИ ТЕКСТА ===
+
+    // Функция, которая измеряет контент и подгоняет viewBox родительского SVG
+    function fitSvgContent(svgElement, contentElement, align) {
+        // Получаем точные размеры контента (текста или группы)
+        const bbox = contentElement.getBBox();
+
+        // Если контента нет или он нулевого размера, выходим
+        if (bbox.width === 0 || bbox.height === 0) return;
+
+        // Добавляем небольшой отступ (padding), чтобы края букв не обрезались
+        const paddingX = 5;
+        const paddingY = 5;
+
+        // Формируем viewBox точно по размеру контента с учетом отступов
+        // x y width height
+        const vBox = `${bbox.x - paddingX} ${bbox.y - paddingY} ${bbox.width + paddingX * 2} ${bbox.height + paddingY * 2}`;
+
+        svgElement.setAttribute('viewBox', vBox);
+
+        // xMinYMid meet = выровнять влево, центрировать по вертикали, вписать пропорционально
+        // xMaxYMid meet = выровнять вправо, центрировать по вертикали, вписать пропорционально
+        svgElement.setAttribute('preserveAspectRatio', `${align} meet`);
+    }
+
+    // Ждем загрузки шрифта, чтобы измерения были точными
+    document.fonts.ready.then(() => {
+        // 1. Подгоняем названия книг (выравнивание влево - xMin)
+        document.querySelectorAll('.title-svg').forEach(svg => {
+            const textElement = svg.querySelector('text');
+            fitSvgContent(svg, textElement, 'xMinYMid');
+        });
+
+        // 2. Подгоняем метаданные (выравнивание вправо - xMax)
+        document.querySelectorAll('.meta-svg').forEach(svg => {
+            // Измеряем всю группу целиком, а не отдельные строки
+            const groupElement = svg.querySelector('.meta-group');
+            fitSvgContent(svg, groupElement, 'xMaxYMid');
+        });
+    });
 </script>
 
 </body>

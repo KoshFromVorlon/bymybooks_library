@@ -3,7 +3,6 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from . import models, database
-import random
 
 app = FastAPI()
 
