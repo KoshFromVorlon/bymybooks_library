@@ -4,12 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4cf81980-30e9-408b-b7c0-8286ef5134fb" name="Changes" comment="sorting done">
-      <change afterPath="$PROJECT_DIR$/app/templates/reader.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/update_db.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models.py" afterDir="false" />
+    <list default="true" id="4cf81980-30e9-408b-b7c0-8286ef5134fb" name="Changes" comment="first book added">
       <change beforePath="$PROJECT_DIR$/app/templates/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/templates/reader.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/reader.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -168,13 +165,22 @@
       <option name="project" value="LOCAL" />
       <updated>1770806436686</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="first book added">
+      <option name="closed" value="true" />
+      <created>1770815238000</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1770815238000</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="initial commit" />
     <MESSAGE value="visual done" />
     <MESSAGE value="sorting done" />
-    <option name="LAST_COMMIT_MESSAGE" value="sorting done" />
+    <MESSAGE value="first book added" />
+    <option name="LAST_COMMIT_MESSAGE" value="first book added" />
   </component>
 </project>

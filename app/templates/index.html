@@ -49,14 +49,14 @@
             margin-bottom: 1px;
             position: relative;
             cursor: pointer;
-            /* ИСПРАВЛЕНИЕ: добавлено плавное затухание тени при возврате на полку */
-            transition: transform 0.5s ease, filter 0.5s ease, box-shadow 0.5s ease;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                        filter 0.6s ease,
+                        box-shadow 0.6s ease;
             display: flex;
             align-items: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.8);
             border-radius: 3px 6px 6px 3px;
             border-bottom: 3px solid rgba(0,0,0,0.4);
-
             scroll-margin-top: calc(50vh - 42px);
         }
 
@@ -66,7 +66,8 @@
             filter: brightness(1.2);
         }
 
-        .book-hor:target {
+        /* === ИСПРАВЛЕННЫЙ КЛАСС ПОДСВЕТКИ === */
+        .active-glow {
             transform: translateX(50px) !important;
             filter: brightness(1.3);
             border-right: 4px solid var(--gold);
@@ -88,19 +89,8 @@
             align-items: center;
         }
 
-        .title-svg-container {
-            flex: 1 1 auto;
-            height: 100%;
-            margin-right: 15px;
-            overflow: hidden;
-        }
-
-        .meta-svg-container {
-            flex: 0 0 auto;
-            width: 240px;
-            height: 100%;
-            margin-left: 15px;
-        }
+        .title-svg-container { flex: 1 1 auto; height: 100%; margin-right: 15px; overflow: hidden; }
+        .meta-svg-container { flex: 0 0 auto; width: 240px; height: 100%; margin-left: 15px; }
 
         .gold-line {
             stroke: var(--gold);
@@ -165,17 +155,14 @@
                  onclick="location.href='/book/{{ book.id }}'">
 
                 <div class="spine-svg">
-
                     <div class="title-svg-container">
                         <svg class="title-svg" width="100%" height="100%">
                             <text x="0" y="50%" class="text-title">{{ book.title }}</text>
                         </svg>
                     </div>
-
                     <svg class="gold-line" width="2" height="60">
                          <line x1="1" y1="0" x2="1" y2="60" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/>
                     </svg>
-
                     <div class="meta-svg-container">
                         <svg class="meta-svg" width="100%" height="100%" overflow="visible">
                             <g class="meta-group">
@@ -185,7 +172,6 @@
                         </svg>
                     </div>
                 </div>
-
             </div>
             {% endfor %}
         </div>
@@ -200,72 +186,55 @@
     function showCover(element, imgUrl) {
         popup.style.backgroundImage = `url('${imgUrl}')`;
         popup.style.display = 'block';
-
         const rect = element.getBoundingClientRect();
-        const popupWidth = 450;
-        const popupHeight = 630;
-
         let left = rect.right + 40;
-        let top = rect.top - (popupHeight / 3);
-
-        if (left + popupWidth > window.innerWidth) {
-            left = rect.left - popupWidth - 40;
-        }
-
-        if (top < 10) top = 10;
-        if (top + popupHeight > window.innerHeight) {
-            top = window.innerHeight - popupHeight - 10;
-        }
-
+        let top = rect.top - 210;
+        if (left + 450 > window.innerWidth) left = rect.left - 490;
         popup.style.left = `${left}px`;
         popup.style.top = `${top}px`;
     }
 
-    function hideCover() {
-        popup.style.display = 'none';
-    }
+    function hideCover() { popup.style.display = 'none'; }
 
     function fitSvgContent(svgElement, contentElement, align) {
         const bbox = contentElement.getBBox();
-        if (bbox.width === 0 || bbox.height === 0) return;
-
-        const paddingX = 5;
-        const paddingY = 5;
-
-        const vBox = `${bbox.x - paddingX} ${bbox.y - paddingY} ${bbox.width + paddingX * 2} ${bbox.height + paddingY * 2}`;
-
+        if (bbox.width === 0) return;
+        const vBox = `${bbox.x - 5} ${bbox.y - 5} ${bbox.width + 10} ${bbox.height + 10}`;
         svgElement.setAttribute('viewBox', vBox);
         svgElement.setAttribute('preserveAspectRatio', `${align} meet`);
     }
 
     document.fonts.ready.then(() => {
-        document.querySelectorAll('.title-svg').forEach(svg => {
-            const textElement = svg.querySelector('text');
-            fitSvgContent(svg, textElement, 'xMinYMid');
-        });
+        document.querySelectorAll('.title-svg').forEach(svg => fitSvgContent(svg, svg.querySelector('text'), 'xMinYMid'));
+        document.querySelectorAll('.meta-svg').forEach(svg => fitSvgContent(svg, svg.querySelector('.meta-group'), 'xMaxYMid'));
 
-        document.querySelectorAll('.meta-svg').forEach(svg => {
-            const groupElement = svg.querySelector('.meta-group');
-            fitSvgContent(svg, groupElement, 'xMaxYMid');
-        });
+        // ВЫЗЫВАЕМ ПОДСВЕТКУ ПОСЛЕ ЗАГРУЗКИ ШРИФТОВ
+        manageBookGlow();
     });
 
-    // === ЛОГИКА ГАШЕНИЯ КНИГИ ===
-    // Функция, которая проверяет, есть ли хэш книги, и запускает таймер на 10 секунд
+    // === УЛУЧШЕННАЯ ЛОГИКА ГАШЕНИЯ ===
     function manageBookGlow() {
-        if (window.location.hash.startsWith('#book-')) {
-            setTimeout(() => {
-                // history.replaceState убирает якорь из адресной строки без скачка страницы вверх
-                history.replaceState(null, null, window.location.pathname + window.location.search);
-            }, 10000);
+        const hash = window.location.hash;
+        if (hash.startsWith('#book-')) {
+            const bookId = hash.substring(1); // получаем book-ID
+            const targetBook = document.getElementById(bookId);
+
+            if (targetBook) {
+                // 1. Скроллим к книге (уже работает через scroll-margin-top)
+                targetBook.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                // 2. Включаем свечение через класс
+                targetBook.classList.add('active-glow');
+
+                // 3. Выключаем свечение ровно через 10 секунд
+                setTimeout(() => {
+                    targetBook.classList.remove('active-glow');
+                    // Убираем хэш из URL, чтобы при обновлении страницы свечение не началось заново
+                    history.replaceState(null, null, window.location.pathname);
+                }, 10000);
+            }
         }
     }
-
-    // Запускаем проверку при загрузке страницы (когда возвращаемся по кнопке "На полку")
-    window.addEventListener('DOMContentLoaded', manageBookGlow);
-
-    // Запускаем проверку, если хэш изменился без перезагрузки
-    window.addEventListener('hashchange', manageBookGlow);
 </script>
 
 </body>
