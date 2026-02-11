@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ByMyBooks — Величественная Библиотека</title>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --wood: url('https://www.transparenttextures.com/patterns/dark-wood.png');
+            --gold: #d4af37;
+            --shelf-color: #3d2b1f;
+        }
+
+        body {
+            margin: 0;
+            background: #1a110a;
+            font-family: 'EB Garamond', serif;
+            color: #fdf5e6;
+            overflow-x: hidden;
+        }
+
+        .vault { padding: 40px 10px; background-image: var(--wood); min-height: 100vh; }
+
+        .shelf-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            margin-bottom: 140px;
+            padding: 0 20px;
+            border-bottom: 55px solid var(--shelf-color);
+            background-image: var(--wood);
+            box-shadow: 0 30px 60px rgba(0,0,0,1);
+            position: relative;
+        }
+
+        .book-stack {
+            display: flex;
+            flex-direction: column-reverse;
+            width: 700px; /* Книги стали ещё длиннее */
+            position: relative;
+            margin-bottom: -2px;
+            align-items: center;
+        }
+
+        .book-hor {
+            width: 100%;
+            height: 85px;
+            margin-bottom: 1px;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.3s ease, filter 0.3s ease;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+            border-radius: 3px 6px 6px 3px;
+            border-bottom: 3px solid rgba(0,0,0,0.4);
+        }
+
+        .book-hor:hover {
+            transform: translateX(40px) !important;
+            z-index: 1000;
+            filter: brightness(1.2);
+        }
+
+        /* SVG ДЛЯ АДАПТИВНОГО КЕГЛЯ */
+        .spine-svg {
+            width: 100%;
+            height: 100%;
+            padding: 0 25px;
+        }
+
+        .gold-line {
+            stroke: var(--gold);
+            stroke-width: 2;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 5px var(--gold));
+        }
+
+        .text-title {
+            fill: var(--gold);
+            font-weight: 800;
+            text-transform: uppercase;
+            font-family: 'EB Garamond', serif;
+        }
+
+        .text-meta {
+            fill: var(--gold);
+            font-weight: 700;
+            font-family: 'EB Garamond', serif;
+            opacity: 0.9;
+        }
+
+        #global-cover-popup {
+            position: fixed;
+            width: 450px;
+            height: 630px;
+            background-size: cover;
+            background-position: center;
+            border: 6px solid var(--gold);
+            border-radius: 8px;
+            box-shadow: 0 0 120px rgba(0,0,0,1);
+            z-index: 10000;
+            display: none;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="global-cover-popup"></div>
+
+<div class="vault">
+    {% for row in rows %}
+    <div class="shelf-row">
+        {% for stack in row %}
+        <div class="book-stack">
+            {% for book in stack %}
+            {% set offset = range(-15, 15) | random %}
+            <div class="book-hor"
+                 style="background-color: {{ book.hex_color }}; transform: translateX({{ offset }}px);"
+                 onmouseenter="showCover(this, '/static/covers/{{ book.id }}.jpg')"
+                 onmouseleave="hideCover()"
+                 onclick="location.href='/book/{{ book.id }}'">
+
+                <svg class="spine-svg" viewBox="0 0 1000 100" preserveAspectRatio="xMidYMid meet">
+                    <svg x="0" y="0" width="680" height="100" viewBox="0 0 500 100" preserveAspectRatio="xMinYMid meet">
+                        <text x="0" y="65" class="text-title" style="font-size: 45px;">{{ book.title }}</text>
+                    </svg>
+
+                    <line x1="710" y1="20" x2="710" y2="80" class="gold-line" />
+
+                    <svg x="740" y="0" width="240" height="100" viewBox="0 0 240 100" preserveAspectRatio="xMaxYMid meet">
+                        <text x="240" y="50" class="text-meta" text-anchor="end" style="font-size: 28px;">{{ book.author.full_name }}</text>
+                        <text x="240" y="85" class="text-meta" text-anchor="end" style="font-size: 22px; opacity: 0.7;">{{ book.year_raw }}</text>
+                    </svg>
+                </svg>
+
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    const popup = document.getElementById('global-cover-popup');
+
+    function showCover(element, imgUrl) {
+        popup.style.backgroundImage = `url('${imgUrl}')`;
+        popup.style.display = 'block';
+
+        const rect = element.getBoundingClientRect();
+        const popupWidth = 450;
+        const popupHeight = 630;
+
+        let left = rect.right + 40;
+        let top = rect.top - (popupHeight / 3);
+
+        if (left + popupWidth > window.innerWidth) {
+            left = rect.left - popupWidth - 40;
+        }
+
+        if (top < 10) top = 10;
+        if (top + popupHeight > window.innerHeight) {
+            top = window.innerHeight - popupHeight - 10;
+        }
+
+        popup.style.left = `${left}px`;
+        popup.style.top = `${top}px`;
+    }
+
+    function hideCover() {
+        popup.style.display = 'none';
+    }
+</script>
+
+</body>
+</html>
