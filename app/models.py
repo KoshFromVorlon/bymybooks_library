@@ -4,24 +4,14 @@ from .database import Base
 
 
 class Author(Base):
-    """
-    Model representing book authors.
-    """
     __tablename__ = "authors"
-
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String, index=True)
-
-    # Relationships
     books = relationship("Book", back_populates="author")
 
 
 class Book(Base):
-    """
-    Model representing books and their associated files/metadata.
-    """
     __tablename__ = "books"
-
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     sort_year = Column(Integer)
@@ -29,15 +19,14 @@ class Book(Base):
     hex_color = Column(String)
     author_id = Column(Integer, ForeignKey("authors.id"))
 
-    # === FILE STORAGE FIELDS ===
-    # Path to the originally uploaded file (fb2, docx, etc.)
-    original_file = Column(String, nullable=True)
-    # Path to the processed EPUB file used by the reader
-    epub_file = Column(String, nullable=True)
+    # Ссылка на PDF файл
+    pdf_file = Column(String, nullable=True)
 
-    # === READING PROGRESS ===
-    # Stores the last reading position as an EPUB CFI string
-    last_location = Column(String, nullable=True)
+    # Новое поле: Количество страниц (для толщины корешка)
+    pages = Column(Integer, default=0)
 
-    # Relationships
+    # Позиция на полке и техническое имя для файлов
+    position = Column(Integer, index=True, nullable=False)
+    slug = Column(String, nullable=False)
+
     author = relationship("Author", back_populates="books")

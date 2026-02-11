@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, Body
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -7,7 +8,7 @@ import os
 
 app = FastAPI()
 
-# Mount the static directory for CSS, covers, and book files
+# Подключаем папку static, откуда будут отдаваться обложки и PDF
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
@@ -15,12 +16,16 @@ templates = Jinja2Templates(directory="app/templates")
 @app.get("/")
 def read_root(request: Request, db: Session = Depends(database.get_db)):
     """
-    Main page: Displays books on shelves sorted by their database ID.
+    Главная страница: Выводит полки с книгами.
+    Сортировка: Хронологическая (по полю position), чтобы соблюсти порядок.
     """
+    # Используем position для правильной хронологии
+    # Если поле position еще не заполнено, можно временно заменить на models.Book.sort_year
     books = db.query(models.Book).join(models.Author).order_by(
-        models.Book.id.asc()
+        models.Book.position.asc()
     ).all()
 
+    # Разбиваем книги на "стопки" по 10 и "полки" по 3 стопки
     stack_size = 10
     stacks = [books[i:i + stack_size] for i in range(0, len(books), stack_size)]
     rows = [stacks[i:i + 3] for i in range(0, len(stacks), 3)]
@@ -29,75 +34,68 @@ def read_root(request: Request, db: Session = Depends(database.get_db)):
 
 
 @app.get("/book/{book_id}")
-def read_book(request: Request, book_id: int, db: Session = Depends(database.get_db)):
+def read_book(book_id: int, db: Session = Depends(database.get_db)):
     """
-    Reader page: Displays the specific book in the EPUB reader interface.
-    """
-    book = db.query(models.Book).filter(models.Book.id == book_id).first()
-
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found")
-
-    return templates.TemplateResponse("reader.html", {"request": request, "book": book})
-
-
-@app.post("/book/{book_id}/bookmark")
-def save_bookmark(
-        book_id: int,
-        cfi: str = Body(..., embed=True),
-        db: Session = Depends(database.get_db)
-):
-    """
-    Saves the current reading position (EPUB CFI) to the PostgreSQL database.
+    Чтение книги: ВМЕСТО глючного ридера мы просто перенаправляем браузер
+    на прямой файл PDF. Chrome/Firefox/Edge откроют его своим нативным,
+    быстрым и красивым просмотрщиком.
     """
     book = db.query(models.Book).filter(models.Book.id == book_id).first()
 
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    # Update the last_location column with the CFI string from the reader
-    book.last_location = cfi
-    db.commit()
+    # Проверяем, есть ли ссылка на PDF
+    if not book.pdf_file:
+        raise HTTPException(status_code=404, detail="PDF file not assigned for this book")
 
-    return {"status": "success", "cfi": cfi}
+    # Редирект на статический файл (например: /static/books/001_sobor.pdf)
+    return RedirectResponse(url=book.pdf_file)
 
 
 @app.get("/sync-files")
 def sync_book_files(db: Session = Depends(database.get_db)):
     """
-    File scanner: Maps files in app/static/books to books in the DB based on ID.
-    Example: '379.epub' will be assigned to the book with ID 379.
+    Сканер файлов: Ищет .pdf файлы в папке books и привязывает их к базе.
+    Поддерживает формат имени: '001_slug.pdf' (по позиции).
     """
     books_dir = "app/static/books"
-
-    # Ensure the directory exists
     os.makedirs(books_dir, exist_ok=True)
 
     updated_count = 0
 
-    # Scan all files in the books directory
+    # Сканируем папку
     for filename in os.listdir(books_dir):
-        # Extract ID and extension (e.g., "379" and ".epub")
-        name, ext = os.path.splitext(filename)
+        name_part, ext = os.path.splitext(filename)
 
-        # Check if the filename is an integer ID
-        if name.isdigit():
-            book_id = int(name)
-            # Find the book in the database
-            book = db.query(models.Book).filter(models.Book.id == book_id).first()
+        # Работаем только с PDF
+        if ext.lower() == '.pdf':
+            # Пытаемся понять, к какой книге относится файл
+            # Вариант 1: Имя файла начинается с позиции (например, 005_sobor.pdf)
+            if "_" in name_part:
+                possible_pos = name_part.split("_")[0]
+                if possible_pos.isdigit():
+                    pos = int(possible_pos)
+                    book = db.query(models.Book).filter(models.Book.position == pos).first()
 
-            if book:
-                file_path = f"/static/books/{filename}"
-                # Assign file path based on extension type
-                if ext.lower() == '.epub':
-                    book.epub_file = file_path
-                else:
-                    book.original_file = file_path
-                updated_count += 1
+                    if book:
+                        book.pdf_file = f"/static/books/{filename}"
+                        updated_count += 1
+
+            # Вариант 2 (запасной): Имя файла это просто ID (например, 379.pdf)
+            elif name_part.isdigit():
+                book_id = int(name_part)
+                book = db.query(models.Book).filter(models.Book.id == book_id).first()
+
+                if book:
+                    book.pdf_file = f"/static/books/{filename}"
+                    updated_count += 1
 
     db.commit()
     return {
         "status": "success",
         "updated_books": updated_count,
-        "message": f"PostgreSQL database synchronized! Updated books: {updated_count}"
+        "message": f"Синхронизация завершена! Привязано PDF-книг: {updated_count}"
     }
+
+# Роут для закладок удален, так как браузерный PDF хранит прогресс локально сам.

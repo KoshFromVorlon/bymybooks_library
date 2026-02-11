@@ -48,3 +48,11 @@ app/static/avatars/*
 # === OS-specific files ===
 .DS_Store
 Thumbs.db
+
+# Игнорируем папки с контентом
+app/static/books/
+app/static/covers/
+
+# Но (опционально) оставляем файл-заглушку, чтобы папка создалась
+!app/static/books/.gitkeep
+!app/static/covers/.gitkeep
