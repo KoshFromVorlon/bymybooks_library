@@ -1,19 +1,50 @@
-# Virtual Environment
+# === IDEs and Editors (PyCharm, VS Code, etc.) ===
+.idea/
+.vscode/
+*.swp
+*.iml
+*.iws
+
+# === Python Environment (Virtual Environments) ===
 venv/
 .venv/
+env/
+ENV/
+# Exclude system folders created by the interpreter
+include/
+lib/
+bin/
+share/
 
-# Python Cache
-*.pyc
+# === Python Cache and Compiled Files ===
 __pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
 
-# Database
+# === Database Files (Local Development) ===
+# We use PostgreSQL on Render, so local DB files stay out of the repo
 instance/
 site.db
 *.sqlite3
+*.db
 
-# Uploaded files (ignore user content)
+# === Static and User Uploads ===
+# Ignore all dynamically uploaded user content
 app/static/uploads/*
 app/static/avatars/*
 
-# Exception for default avatar (keep this file in git)
+# Exception: Keep the default avatar in the repository
 !app/static/avatars/default.png
+
+# === Environment Variables and Logs ===
+.env
+.env.local
+.env.*
+*.log
+
+# === OS-specific files ===
+.DS_Store
+Thumbs.db
