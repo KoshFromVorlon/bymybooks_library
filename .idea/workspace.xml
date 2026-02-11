@@ -4,7 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4cf81980-30e9-408b-b7c0-8286ef5134fb" name="Changes" comment="first book added">
+    <list default="true" id="4cf81980-30e9-408b-b7c0-8286ef5134fb" name="Changes" comment="MIN_SCALE = 50, MAX_SCALE = 150">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/templates/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/templates/reader.html" beforeDir="false" afterPath="$PROJECT_DIR$/app/templates/reader.html" afterDir="false" />
     </list>
@@ -173,7 +174,15 @@
       <option name="project" value="LOCAL" />
       <updated>1770815238000</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="MIN_SCALE = 50, MAX_SCALE = 150">
+      <option name="closed" value="true" />
+      <created>1770815901193</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1770815901193</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -181,6 +190,7 @@
     <MESSAGE value="visual done" />
     <MESSAGE value="sorting done" />
     <MESSAGE value="first book added" />
-    <option name="LAST_COMMIT_MESSAGE" value="first book added" />
+    <MESSAGE value="MIN_SCALE = 50, MAX_SCALE = 150" />
+    <option name="LAST_COMMIT_MESSAGE" value="MIN_SCALE = 50, MAX_SCALE = 150" />
   </component>
 </project>

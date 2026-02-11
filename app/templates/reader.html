@@ -32,12 +32,12 @@
 
         .back-btn {
             position: fixed;
-            top: 30px;
-            left: 30px;
+            top: 20px;
+            left: 20px;
             color: var(--gold);
             text-decoration: none;
             font-weight: 700;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             border: 1px solid var(--gold);
             padding: 8px 16px;
             border-radius: 4px;
@@ -54,16 +54,15 @@
 
         #reader-container {
             background-color: var(--paper);
-            width: 100%;
-            max-width: 1000px;
-            height: 92vh;
+            width: 98%;
+            max-width: 1200px;
+            height: 94vh;
             box-shadow: 0 0 60px rgba(0,0,0,0.9), inset 0 0 100px rgba(139, 69, 19, 0.05);
             border-radius: 5px;
             position: relative;
             display: flex;
         }
 
-        /* === ПАНЕЛЬ МАСШТАБИРОВАНИЯ === */
         .zoom-controls {
             position: absolute;
             top: 15px;
@@ -93,7 +92,6 @@
         }
 
         .zoom-btn:hover { color: #b8962e; transform: scale(1.1); }
-        .zoom-btn:active { transform: scale(0.95); }
 
         #zoom-val {
             font-size: 1.05rem;
@@ -106,18 +104,18 @@
         .nav-btn {
             width: 80px;
             height: 100%;
-            background: rgba(0,0,0,0.02);
+            background: rgba(0,0,0,0.01);
             border: none;
             cursor: pointer;
             font-size: 3rem;
-            color: rgba(43, 32, 19, 0.3);
+            color: rgba(43, 32, 19, 0.2);
             transition: all 0.3s;
             font-family: monospace;
         }
 
         .nav-btn:hover {
-            background: rgba(0,0,0,0.08);
-            color: rgba(43, 32, 19, 0.9);
+            background: rgba(0,0,0,0.05);
+            color: rgba(43, 32, 19, 0.8);
         }
 
         .viewer-column {
@@ -126,14 +124,12 @@
             flex-direction: column;
             height: 100%;
             overflow: hidden;
-            width: calc(100% - 160px);
         }
 
         #viewer {
             flex-grow: 1;
             width: 100%;
-            height: calc(100% - 50px);
-            padding: 50px 0 0 0; /* Увеличен отступ сверху, чтобы текст не налезал на зум-панель */
+            padding: 50px 0 0 0;
             overflow: hidden;
         }
 
@@ -165,24 +161,19 @@
 
         #page-text {
             cursor: pointer;
-            transition: color 0.2s, transform 0.2s;
+            transition: color 0.2s;
             user-select: none;
             padding: 5px 10px;
             border-radius: 4px;
         }
 
-        #page-text:hover {
-            color: #b8962e;
-            background-color: rgba(0, 0, 0, 0.03);
-            transform: scale(1.02);
-        }
+        #page-text:hover { color: #b8962e; background-color: rgba(0, 0, 0, 0.03); }
 
         .keyboard-hint {
-            margin-top: 15px;
+            margin-top: 10px;
             color: var(--gold);
             opacity: 0.6;
-            font-size: 1.1rem;
-            letter-spacing: 1px;
+            font-size: 1rem;
         }
     </style>
 </head>
@@ -194,18 +185,17 @@
     <button id="prev" class="nav-btn">‹</button>
 
     <div class="viewer-column">
-
         <div class="zoom-controls">
-            <button id="btn-zoom-out" class="zoom-btn" title="Уменьшить шрифт">−</button>
-            <span id="zoom-val" title="Текущий масштаб">100%</span>
-            <button id="btn-zoom-in" class="zoom-btn" title="Увеличить шрифт">+</button>
+            <button id="btn-zoom-out" class="zoom-btn">−</button>
+            <span id="zoom-val">100%</span>
+            <button id="btn-zoom-in" class="zoom-btn">+</button>
         </div>
 
         <div id="viewer"></div>
 
         <div class="reader-footer">
             <button id="btn-start" class="footer-btn">« В начало</button>
-            <span id="page-text" title="Нажмите, чтобы перейти на другую страницу">Загрузка страниц...</span>
+            <span id="page-text">Загрузка страниц...</span>
             <button id="btn-end" class="footer-btn">В конец »</button>
         </div>
     </div>
@@ -219,23 +209,19 @@
     const epubUrl = "{{ book.epub_file }}";
     const pageText = document.getElementById("page-text");
 
-    // Переменные масштабирования
     let currentScale = 100;
     const MIN_SCALE = 50;
     const MAX_SCALE = 150;
-    const SCALE_STEP = 25;
-    let resizeTimer; // Таймер для предотвращения зависаний при быстром кликаньи масштаба
+    const SCALE_STEP = 10;
 
     if (epubUrl && epubUrl !== "None" && epubUrl !== "") {
         const book = ePub(epubUrl);
-
         const rendition = book.renderTo("viewer", {
             width: "100%",
             height: "100%",
             spread: "none"
         });
 
-        // Убрали жесткий font-size отсюда, чтобы им управлял механизм масштабирования
         rendition.hooks.content.register(function(contents) {
             contents.addStylesheetRules({
                 "body": {
@@ -248,107 +234,74 @@
             });
         });
 
-        // Применяем стартовый масштаб перед отображением
-        applyScale(false);
+        // ПЕРВОНАЧАЛЬНАЯ ЗАГРУЗКА
+        applyScale(); // Просто ставим шрифт
         rendition.display();
 
-        // --- ЛОГИКА МАСШТАБИРОВАНИЯ ---
-        function applyScale(recalculatePages = true) {
-            // Базовый размер 1.3rem = 100%. Вычисляем текущий:
+        // Функция только меняет шрифт, НЕ трогая локации
+        function applyScale() {
             const actualRem = 1.3 * (currentScale / 100);
-
-            // ePub.js сам прокидывает это значение в iframe
             rendition.themes.fontSize(actualRem + "rem");
             document.getElementById('zoom-val').textContent = currentScale + "%";
-
-            // Если нужно пересчитать страницы (после прогрузки)
-            if (recalculatePages) {
-                clearTimeout(resizeTimer);
-                pageText.textContent = "Пересчет страниц...";
-
-                // Ждем 600мс после последнего клика, чтобы не вешать браузер
-                resizeTimer = setTimeout(() => {
-                    book.locations.generate(1024).then(() => {
-                        const currentLocation = rendition.currentLocation();
-                        if (currentLocation && currentLocation.start) {
-                            updatePagination(currentLocation);
-                        }
-                    });
-                }, 600);
-            }
         }
 
         document.getElementById('btn-zoom-in').addEventListener('click', () => {
             if (currentScale < MAX_SCALE) {
                 currentScale += SCALE_STEP;
-                applyScale(true);
+                applyScale();
             }
         });
 
         document.getElementById('btn-zoom-out').addEventListener('click', () => {
             if (currentScale > MIN_SCALE) {
                 currentScale -= SCALE_STEP;
-                applyScale(true);
+                applyScale();
             }
         });
 
-
-        // --- ЛОГИКА ПАГИНАЦИИ ---
+        // ГЕНЕРАЦИЯ ЛОКАЦИЙ - ТОЛЬКО ОДИН РАЗ ПРИ СТАРТЕ
         book.ready.then(() => {
             pageText.textContent = "Подсчет страниц...";
             return book.locations.generate(1024);
-        }).then((locations) => {
+        }).then(() => {
             const currentLocation = rendition.currentLocation();
-            if (currentLocation && currentLocation.start) {
-                updatePagination(currentLocation);
-            }
+            if (currentLocation) updatePagination(currentLocation);
         });
 
         function updatePagination(location) {
-            if (book.locations.length() > 0) {
+            const total = book.locations.total;
+            if (total > 0) {
                 const currentCfi = location.start.cfi;
                 const percentage = Math.round(book.locations.percentageFromCfi(currentCfi) * 100);
-                const currentPage = book.locations.locationFromCfi(currentCfi);
-                const totalPages = book.locations.total;
-                pageText.textContent = `Страница ${currentPage} из ${totalPages} (${percentage}%)`;
-            } else {
-                pageText.textContent = "Чтение...";
+                let currentPage = book.locations.locationFromCfi(currentCfi);
+
+                if (rendition.atEnd) currentPage = total;
+
+                pageText.textContent = `Страница ${currentPage} из ${total} (${percentage}%)`;
             }
         }
 
         rendition.on("relocated", function(location) {
+            rendition.atEnd = location.atEnd;
             updatePagination(location);
         });
 
-        // --- БЫСТРЫЙ ПЕРЕХОД ПО КЛИКУ ---
         pageText.addEventListener("click", () => {
-            const totalPages = book.locations.total;
-            if (!totalPages) return;
-
-            const targetPageStr = prompt(`Введите номер страницы (от 1 до ${totalPages}):`);
-
-            if (targetPageStr !== null && targetPageStr.trim() !== "") {
-                const targetPage = parseInt(targetPageStr, 10);
-
-                if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= totalPages) {
-                    const targetCfi = book.locations.cfiFromLocation(targetPage);
-                    rendition.display(targetCfi);
-                } else {
-                    alert(`Ошибка! Пожалуйста, введите корректное число от 1 до ${totalPages}.`);
+            const total = book.locations.total;
+            const target = prompt(`Введите страницу (1-${total}):`);
+            if (target) {
+                const pageNum = parseInt(target, 10);
+                if (pageNum >= 1 && pageNum <= total) {
+                    rendition.display(book.locations.cfiFromLocation(pageNum));
                 }
             }
         });
 
-        document.getElementById('btn-start').addEventListener('click', () => {
-            rendition.display(book.spine.first().href);
-        });
+        document.getElementById('btn-start').addEventListener('click', () => rendition.display(book.spine.first().href));
 
         document.getElementById('btn-end').addEventListener('click', () => {
-            if (book.locations.length() > 0) {
-                rendition.display(book.locations.locationFromPercentage(0.999999));
-            } else {
-                rendition.display(book.spine.last().href);
-            }
+            const last = book.spine.last();
+            if (last) rendition.display(last.href);
         });
 
         document.getElementById('prev').addEventListener('click', () => rendition.prev());
@@ -358,14 +311,6 @@
             if (e.key === "ArrowLeft") rendition.prev();
             if (e.key === "ArrowRight") rendition.next();
         });
-    } else {
-        document.getElementById('viewer').innerHTML = `
-            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center;">
-                <h1 style="font-size: 2.5rem; margin-bottom: 10px;">{{ book.title }}</h1>
-                <h3 style="color: #5a4b3c; margin-top: 0;">{{ book.author.full_name }}</h3>
-                <p style="margin-top: 40px; font-size: 1.2rem;">Текст данного произведения еще не загружен в архив.</p>
-            </div>
-        `;
     }
 </script>
 
