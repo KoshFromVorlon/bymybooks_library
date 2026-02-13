@@ -18,7 +18,6 @@ class Book(Base):
     author_id = Column(Integer, ForeignKey("authors.id"))
 
     pdf_file = Column(String, nullable=True)     # Ссылка на веб-путь
-    cover_image = Column(String, nullable=True)  # Ссылка на веб-путь обложки
     pages = Column(Integer, default=0)           # Для толщины
     position = Column(Integer, index=True)       # Хронологический номер
     slug = Column(String, nullable=False)        # Техническое имя

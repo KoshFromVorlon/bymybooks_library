@@ -94,27 +94,36 @@ def parse_txt_file(filepath):
 def sync_library():
     print("🚀 Старт глобальной синхронизации...\n")
 
+    # ВНИМАНИЕ: Очищаем базу перед пересозданием, чтобы удалить старую колонку cover_image
+    print("[БД] Удаление старых таблиц...")
+    models.Base.metadata.drop_all(bind=engine)
+
+    print("[БД] Создание новых таблиц...")
     models.Base.metadata.create_all(bind=engine)
+
     db = SessionLocal()
 
     # 1. СИНХРОНИЗАЦИЯ БАЗЫ (Добавляем новые из TXT)
-    books_data = parse_txt_file("books_list.txt")
-    for item in books_data:
-        author = db.query(models.Author).filter_by(full_name=item['author']).first()
-        if not author:
-            author = models.Author(full_name=item['author'])
-            db.add(author)
-            db.flush()
+    if os.path.exists("books_list.txt"):
+        books_data = parse_txt_file("books_list.txt")
+        for item in books_data:
+            author = db.query(models.Author).filter_by(full_name=item['author']).first()
+            if not author:
+                author = models.Author(full_name=item['author'])
+                db.add(author)
+                db.flush()
 
-        book = db.query(models.Book).filter_by(title=item['title']).first()
-        if not book:
-            book = models.Book(
-                title=item['title'], author_id=author.id, year_raw=item['year_raw'],
-                sort_year=item['sort_year'], hex_color=random.choice(COLORS), slug=item['slug']
-            )
-            db.add(book)
-            print(f"[БД] Добавлена новая книга: {book.title}")
-    db.commit()
+            book = db.query(models.Book).filter_by(title=item['title']).first()
+            if not book:
+                book = models.Book(
+                    title=item['title'], author_id=author.id, year_raw=item['year_raw'],
+                    sort_year=item['sort_year'], hex_color=random.choice(COLORS), slug=item['slug']
+                )
+                db.add(book)
+                print(f"[БД] Добавлена новая книга: {book.title}")
+        db.commit()
+    else:
+        print("⚠️ Файл books_list.txt не найден, пропускаем импорт новых книг.")
 
     # =========================================================================
     # 2. ПЕРЕРАСЧЕТ ХРОНОЛОГИИ (С УМНОЙ ГРУППИРОВКОЙ)
@@ -123,24 +132,21 @@ def sync_library():
 
     authors_dict = defaultdict(list)
     for book in all_books:
-        # ИЗОЛИРУЕМ АНОНИМОВ: Если автор "Аноним", кладем книгу в её личную группу (по ID)
         if "Аноним" in book.author.full_name:
             authors_dict[f"anon_{book.id}"].append(book)
         else:
-            # Обычных авторов группируем вместе
             authors_dict[book.author_id].append(book)
 
-    # Шаг А: Сортируем книги ВНУТРИ каждого автора по хронологии
+    # Сортировка внутри авторов
     for group_key in authors_dict:
         authors_dict[group_key].sort(key=lambda b: (b.sort_year, b.id))
 
-    # Шаг Б: Сортируем ГРУППЫ по дате выхода их ПЕРВОЙ книги
+    # Сортировка групп по первой книге
     sorted_group_keys = sorted(
         authors_dict.keys(),
         key=lambda k: (authors_dict[k][0].sort_year, str(k))
     )
 
-    # Шаг В: Выстраиваем их в одну линию и раздаем новые позиции
     final_sorted_books = []
     for group_key in sorted_group_keys:
         final_sorted_books.extend(authors_dict[group_key])
@@ -151,48 +157,40 @@ def sync_library():
     db.commit()
     # =========================================================================
 
-    # 3. РАБОТА С ФАЙЛАМИ И ПАПКАМИ
+    # 3. РАБОТА С ФАЙЛАМИ (ТОЛЬКО PDF)
     books_dir = os.path.join("app", "static", "books")
-    covers_dir = os.path.join("app", "static", "covers")
     os.makedirs(books_dir, exist_ok=True)
-    os.makedirs(covers_dir, exist_ok=True)
 
     for book in final_sorted_books:
-        target_prefix = f"{book.position:03d}_{book.slug}"
-        target_pdf = f"{target_prefix}.pdf"
-        target_jpg = f"{target_prefix}.jpg"
+        target_pdf = f"{book.position:03d}_{book.slug}.pdf"
+        target_path = os.path.join(books_dir, target_pdf)
 
-        def process_file(directory, extension, target_name):
-            target_path = os.path.join(directory, target_name)
-            matching_files = [f for f in os.listdir(directory) if book.slug in f and f.endswith(extension)]
+        matching_files = [f for f in os.listdir(books_dir) if book.slug in f and f.endswith(".pdf")]
 
-            if matching_files and target_name not in matching_files:
-                old_path = os.path.join(directory, matching_files[0])
-                if not os.path.exists(target_path):
+        if matching_files and target_pdf not in matching_files:
+            old_path = os.path.join(books_dir, matching_files[0])
+            if not os.path.exists(target_path):
+                try:
                     os.replace(old_path, target_path)
-                    print(f"[ФАЙЛЫ] Переименован: {matching_files[0]} -> {target_name}")
+                    print(f"[ФАЙЛЫ] Переименован: {matching_files[0]} -> {target_pdf}")
+                except OSError as e:
+                    print(f"❌ Ошибка переименования {old_path}: {e}")
 
-            return target_path if os.path.exists(target_path) else None
+        if os.path.exists(target_path):
+            book.pdf_file = f"/static/books/{target_pdf}"
 
-        pdf_path = process_file(books_dir, ".pdf", target_pdf)
-        cover_path = process_file(covers_dir, ".jpg", target_jpg)
-
-        # 4. ПОДСЧЕТ СТРАНИЦ
-        if pdf_path:
+            # 4. ПОДСЧЕТ СТРАНИЦ
             try:
-                # Игнорируем пустые файлы-заглушки (меньше 1 КБ), чтобы не спамить ошибками
-                if os.path.getsize(pdf_path) > 1024:
-                    reader = PdfReader(pdf_path)
+                if os.path.getsize(target_path) > 1024:
+                    reader = PdfReader(target_path)
                     pages_count = len(reader.pages)
                     if book.pages != pages_count:
                         book.pages = pages_count
                         print(f"[PDF] {book.title} — {pages_count} стр.")
             except Exception:
                 pass
-
-                # Обновляем ссылки в БД
-        book.pdf_file = f"/static/books/{target_pdf}" if pdf_path else None
-        book.cover_image = f"/static/covers/{target_jpg}" if cover_path else None
+        else:
+            book.pdf_file = None
 
     db.commit()
     db.close()

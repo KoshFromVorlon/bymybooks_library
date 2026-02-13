@@ -127,10 +127,10 @@
                         box-shadow 0.4s ease,
                         opacity 0.3s ease;
 
-            /* Цвет теперь задается через JS, но оставим дефолт */
+            /* Цвет задается через JS */
             background-color: var(--book-base-color, #3D2314);
 
-            /* Flexbox для распределения секций (название / автор) */
+            /* Flexbox для распределения секций */
             display: flex;
             align-items: stretch;
 
@@ -254,21 +254,6 @@
         .text-meta-block tspan {
              font-family: 'EB Garamond', serif;
         }
-
-        /* === ПОПАП ОБЛОЖКИ === */
-        #global-cover-popup {
-            position: fixed; width: 450px; height: 630px;
-            background-size: cover; background-position: center;
-            border: 8px solid var(--shelf-color);
-            border-radius: 4px;
-            box-shadow: 0 20px 100px rgba(0,0,0,1);
-            z-index: 10000; display: none; pointer-events: none;
-        }
-
-        #global-cover-popup::after {
-            content: ''; position: absolute; top: -8px; left: -8px; right: -8px; bottom: -8px;
-            border: 2px solid var(--gold); pointer-events: none; border-radius: 4px;
-        }
     </style>
 </head>
 <body>
@@ -276,8 +261,6 @@
 <div class="search-container">
     <input type="text" id="library-search" placeholder="Поиск в архивах..." autocomplete="off">
 </div>
-
-<div id="global-cover-popup"></div>
 
 <div class="vault">
     <div class="no-results" id="no-results-message">В этих древних архивах ничего не найдено...</div>
@@ -296,8 +279,6 @@
                  class="book-hor"
                  data-search="{{ book.title | lower }} {{ book.author.full_name | lower }} {{ book.year_raw | lower }}"
                  style="height: {{ thickness|int }}px; transform: translateX({{ offset }}px);"
-                 onmouseenter="showCover(this, '/static/covers/{{ '%03d' | format(book.position) }}_{{ book.slug }}.jpg')"
-                 onmouseleave="hideCover()"
                  onclick="window.open('/book/{{ book.id }}', '_blank')">
 
                 <div class="spine-content-wrapper">
@@ -326,10 +307,7 @@
 </div>
 
 <script>
-    const popup = document.getElementById('global-cover-popup');
-
     // === ПАЛИТРА ДЛЯ ГЕНЕРАЦИИ ЦВЕТОВ ПО АВТОРУ ===
-    // Только темно-коричневые, темно-зеленые и глубокие землистые тона.
     const strictPalette = [
         '#3D2314', // Классический темный дуб
         '#2A1A10', // Глубокий кофейный
@@ -343,26 +321,6 @@
         '#263226', // Темно-оливковый
         '#421C02'  // Красное дерево (темное)
     ];
-
-    function showCover(element, imgUrl) {
-        popup.style.backgroundImage = `url('${imgUrl}')`;
-        popup.style.display = 'block';
-
-        const rect = element.getBoundingClientRect();
-        const popupWidth = 450;
-        const popupHeight = 630;
-        let left = rect.right + 40;
-        let top = rect.top - (popupHeight / 3);
-
-        if (left + popupWidth > window.innerWidth) left = rect.left - popupWidth - 40;
-        if (top < 100) top = 100;
-        if (top + popupHeight > window.innerHeight) top = window.innerHeight - popupHeight - 10;
-
-        popup.style.left = `${left}px`;
-        popup.style.top = `${top}px`;
-    }
-
-    function hideCover() { popup.style.display = 'none'; }
 
     // === ЛОГИКА ЦВЕТА (ОДИН АВТОР = ОДИН ЦВЕТ) ===
     function colorizeBooks() {
@@ -409,8 +367,8 @@
     }
 
     document.fonts.ready.then(() => {
-        colorizeBooks(); // Сначала красим
-        autoFitText();   // Потом подгоняем текст
+        colorizeBooks();
+        autoFitText();
     });
 
     window.addEventListener('resize', autoFitText);
