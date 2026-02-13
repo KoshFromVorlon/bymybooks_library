@@ -7,7 +7,17 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app import models
 
-COLORS = ["#4B0002", "#013220", "#191970", "#2F4F4F", "#556B2F", "#3B2F2F"]
+# Палитра "Антикварная библиотека"
+COLORS = [
+    "#2A1B15",  # Глубокий коричневый (старая кожа)
+    "#3D2314",  # Темный каштан
+    "#4A2511",  # Ржавая кожа
+    "#1F2621",  # Очень темный зеленый
+    "#2C3A2E",  # Темный изумруд
+    "#1B2430",  # Полуночный синий
+    "#2E1B1E",  # Глубокий винный (бордо)
+    "#3C2A2A"  # Выцветший коричневый
+]
 
 
 def generate_slug(text):

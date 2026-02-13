@@ -4,218 +4,317 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ByMyBooks — Величественная Библиотека</title>
-    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=EB+Garamond:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
+            /* Текстура темного дуба для фона */
             --wood: url('https://www.transparenttextures.com/patterns/dark-wood.png');
-            --gold: #d4af37;
-            --shelf-color: #3d2b1f;
+            /* Цвета */
+            --gold: #c5a05a;
+            --gold-shadow: #8c6b30;
+            --shelf-color: #261a12;
         }
 
         body {
             margin: 0;
-            background: #1a110a;
+            background: #0f0a06;
             font-family: 'EB Garamond', serif;
             color: #fdf5e6;
             overflow-x: hidden;
         }
 
-        .vault { padding: 40px 10px; background-image: var(--wood); min-height: 100vh; }
+        /* === ПОИСКОВАЯ СТРОКА === */
+        .search-container {
+            position: sticky;
+            top: 0;
+            z-index: 2000;
+            text-align: center;
+            padding: 25px 20px;
+            background: rgba(15, 10, 6, 0.95);
+            border-bottom: 3px solid var(--shelf-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+        }
 
+        #library-search {
+            width: 100%;
+            max-width: 800px;
+            font-family: 'Cinzel Decorative', cursive;
+            font-size: 22px;
+            padding: 15px 30px;
+            background: linear-gradient(145deg, #2b2013, #1a110a);
+            color: var(--gold);
+            border: 2px solid var(--gold-shadow);
+            border-radius: 4px;
+            outline: none;
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.8), 0 2px 5px rgba(197, 160, 90, 0.2);
+            transition: all 0.3s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        #library-search:focus {
+            border-color: var(--gold);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.9), 0 0 15px rgba(197, 160, 90, 0.4);
+        }
+
+        #library-search::placeholder {
+            color: rgba(197, 160, 90, 0.4);
+            font-family: 'EB Garamond', serif;
+        }
+
+        .vault {
+            padding: 40px 10px;
+            background-image: var(--wood);
+            min-height: 100vh;
+            background-color: #0f0a06;
+        }
+
+        /* === ПОЛКИ === */
         .shelf-row {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             align-items: flex-end;
-            margin-bottom: 140px;
+            margin-bottom: 130px;
             padding: 0 2%;
-            border-bottom: 55px solid var(--shelf-color);
+            border-bottom: 60px solid var(--shelf-color);
             background-image: var(--wood);
-            box-shadow: 0 30px 60px rgba(0,0,0,1);
+            box-shadow: 0 40px 70px rgba(0,0,0,1), inset 0 -10px 20px rgba(0,0,0,0.5);
             position: relative;
+            gap: 60px;
+            transition: opacity 0.3s;
+        }
 
-            /* === ИЗМЕНЕНИЕ 1: Увеличили отступ между стопками === */
-            gap: 60px; /* Было 20px, стало 60px для "воздуха" */
+        .shelf-row::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+            pointer-events: none;
         }
 
         .book-stack {
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
-
-            /* === ИЗМЕНЕНИЕ 2: Чуть уменьшили ширину === */
-            /* Было 32%, ставим 29%, чтобы компенсировать увеличившийся gap и оставить 3 колонки */
             width: 29%;
             max-width: 700px;
             min-width: 320px;
-
             position: relative;
-            margin-bottom: -2px;
+            margin-bottom: -4px;
             align-items: center;
             flex-grow: 1;
         }
 
-        /* === АДАПТИВНОСТЬ === */
-        @media (max-width: 1300px) { /* Чуть раньше включаем режим 2 колонок */
-            .book-stack {
-                width: 45%;
-            }
-        }
-
+        @media (max-width: 1300px) { .book-stack { width: 45%; } }
         @media (max-width: 768px) {
-            .book-stack {
-                width: 95%;
-            }
-            .shelf-row {
-                padding-bottom: 20px;
-            }
+            .book-stack { width: 95%; }
+            .shelf-row { padding-bottom: 20px; border-bottom-width: 40px;}
+            #library-search { font-size: 18px; padding: 12px 20px; }
         }
 
+        /* === ДИЗАЙН КНИГИ === */
         .book-hor {
             width: 100%;
-            margin-bottom: 1px;
+            margin-bottom: 2px;
             position: relative;
             cursor: pointer;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-                        filter 0.6s ease,
-                        box-shadow 0.6s ease;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.8);
-            border-radius: 3px 6px 6px 3px;
-            border-bottom: 3px solid rgba(0,0,0,0.4);
-            scroll-margin-top: calc(50vh - 42px);
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        filter 0.4s ease,
+                        box-shadow 0.4s ease,
+                        opacity 0.3s ease;
 
+            /* Цвет теперь задается через JS, но оставим дефолт */
+            background-color: var(--book-base-color, #3D2314);
+
+            /* Flexbox для распределения секций (название / автор) */
             display: flex;
-            align-items: center;
-            overflow: hidden;
+            align-items: stretch;
+
+            border-right: none;
+
+            /* Текстура и бинты */
+            background-image:
+            /* 1. БИНТЫ */
+            repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 17.5%,
+                rgba(0,0,0,0.5) 17.5%,
+                rgba(255,255,255,0.3) 18.75%,
+                rgba(0,0,0,0.5) 20%,
+                transparent 20%
+            ),
+            /* 2. ОБЪЕМ КОЖИ */
+            linear-gradient(to bottom,
+                rgba(0,0,0,0.5) 0%,
+                rgba(255,255,255,0.1) 20%,
+                transparent 50%,
+                rgba(0,0,0,0.6) 100%
+            ),
+            /* 3. ШУМ */
+            url('https://www.transparenttextures.com/patterns/leather.png');
+
+            background-blend-mode: overlay, soft-light, multiply;
+
+            box-shadow:
+                inset 0 1px 3px rgba(255,255,255,0.1),
+                inset 0 -1px 3px rgba(0,0,0,0.5),
+                0 5px 10px rgba(0,0,0,0.7);
+
+            border-radius: 3px 6px 6px 3px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .book-hor:hover {
-            transform: translateX(20px) !important;
+            transform: translateX(30px) scale(1.02) !important;
             z-index: 1000;
-            filter: brightness(1.2);
+            filter: brightness(1.15) contrast(1.1);
+            box-shadow: 0 15px 30px rgba(0,0,0,1) !important;
         }
 
-        .active-glow {
-            transform: translateX(30px) !important;
-            filter: brightness(1.3);
-            border-right: 4px solid var(--gold);
-            z-index: 1000;
-            animation: pulse-glow 2s infinite;
+        /* Классы для поиска */
+        .hidden-book { display: none !important; }
+        .hidden-shelf { display: none !important; }
+        .no-results {
+            text-align: center; font-size: 32px; color: var(--gold);
+            margin-top: 50px; display: none; width: 100%; font-family: 'Cinzel Decorative', cursive;
+            text-shadow: 0 2px 5px rgba(0,0,0,1);
         }
 
-        @keyframes pulse-glow {
-            0% { box-shadow: -5px 0 15px rgba(212, 175, 55, 0.4); }
-            50% { box-shadow: -5px 0 35px rgba(212, 175, 55, 1); }
-            100% { box-shadow: -5px 0 15px rgba(212, 175, 55, 0.4); }
+        /* === ВНУТРЕННЯЯ СТРУКТУРА === */
+        .spine-content-wrapper {
+             display: flex;
+             width: 100%;
+             height: 100%;
+             filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.8));
         }
 
-        /* === СТРУКТУРА КОРЕШКА === */
+        /* СЕКЦИЯ НАЗВАНИЯ (80%) */
         .spine-left {
-            flex: 1;
+            flex: 0 0 80%;
+            width: 80%;
             height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2px 8px;
+            padding: 2px 10px;
             box-sizing: border-box;
+            transform: perspective(500px) rotateY(2deg);
         }
 
-        .spine-divider {
-            flex: 0 0 10px;
-            height: 90%;
-            border-left: 2px solid var(--gold);
-            border-right: 2px solid var(--gold);
-            opacity: 0.9;
-            box-shadow: 0 0 3px rgba(212, 175, 55, 0.4);
-            margin: 0 2px;
-        }
-
+        /* СЕКЦИЯ АВТОРА (20%) */
         .spine-right {
-            flex: 0 0 25%;
-            width: 25%;
-            max-width: 25%;
+            flex: 0 0 20%;
+            width: 20%;
             height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2px 5px;
+            padding: 2px 20px 2px 5px;
             box-sizing: border-box;
+            transform: perspective(500px) rotateY(-2deg);
+            position: relative;
         }
 
-        svg {
-            display: block;
-            width: 100%;
-            height: 100%;
-            overflow: visible;
+        /* ЗОЛОТАЯ ПОЛОСКА */
+        .spine-right::before {
+            content: '';
+            position: absolute;
+            left: -6.25%;
+            top: 5%;
+            bottom: 5%;
+            width: 4px;
+            background: linear-gradient(to right, var(--gold-shadow), var(--gold), var(--gold-shadow));
+            border-radius: 2px;
+            box-shadow: inset 0 0 2px rgba(0,0,0,0.8);
+            transform: translateX(-50%);
+            z-index: 2;
         }
+
+        svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
         text {
             fill: var(--gold);
-            font-family: 'EB Garamond', serif;
+            font-family: 'Cinzel Decorative', 'EB Garamond', serif;
             text-anchor: middle;
             dominant-baseline: central;
         }
 
         .text-title {
-            font-weight: 800;
+            font-weight: 700;
             text-transform: uppercase;
-            font-size: 60px;
-            filter: drop-shadow(1px 1px 0px rgba(0,0,0,0.5));
+            font-size: 55px;
+            letter-spacing: 1px;
         }
 
+        .text-meta-block tspan {
+             font-family: 'EB Garamond', serif;
+        }
+
+        /* === ПОПАП ОБЛОЖКИ === */
         #global-cover-popup {
-            position: fixed;
-            width: 450px;
-            height: 630px;
-            background-size: cover;
-            background-position: center;
-            border: 6px solid var(--gold);
-            border-radius: 8px;
-            box-shadow: 0 0 120px rgba(0,0,0,1);
-            z-index: 10000;
-            display: none;
-            pointer-events: none;
+            position: fixed; width: 450px; height: 630px;
+            background-size: cover; background-position: center;
+            border: 8px solid var(--shelf-color);
+            border-radius: 4px;
+            box-shadow: 0 20px 100px rgba(0,0,0,1);
+            z-index: 10000; display: none; pointer-events: none;
+        }
+
+        #global-cover-popup::after {
+            content: ''; position: absolute; top: -8px; left: -8px; right: -8px; bottom: -8px;
+            border: 2px solid var(--gold); pointer-events: none; border-radius: 4px;
         }
     </style>
 </head>
 <body>
 
+<div class="search-container">
+    <input type="text" id="library-search" placeholder="Поиск в архивах..." autocomplete="off">
+</div>
+
 <div id="global-cover-popup"></div>
 
 <div class="vault">
+    <div class="no-results" id="no-results-message">В этих древних архивах ничего не найдено...</div>
+
     {% for row in rows %}
     <div class="shelf-row">
         {% for stack in row %}
         <div class="book-stack">
             {% for book in stack %}
-            {% set offset = range(-10, 10) | random %}
-
+            {% set offset = range(-8, 8) | random %}
             {% set p = book.pages if book.pages > 0 else 300 %}
-            {% set thickness = 45 + (p * 0.12) %}
-            {% if thickness > 140 %}{% set thickness = 140 %}{% endif %}
+            {% set thickness = 50 + (p * 0.12) %}
+            {% if thickness > 150 %}{% set thickness = 150 %}{% endif %}
 
             <div id="book-{{ book.id }}"
                  class="book-hor"
-                 style="height: {{ thickness|int }}px; background-color: {{ book.hex_color or '#2b2013' }}; transform: translateX({{ offset }}px);"
-                 onmouseenter="showCover(this, '/static/covers/{{ '%03d' | format(book.position) }}_{{ book.slug }}.jpg?v={{ range(1, 10000) | random }}')"
+                 data-search="{{ book.title | lower }} {{ book.author.full_name | lower }} {{ book.year_raw | lower }}"
+                 style="height: {{ thickness|int }}px; transform: translateX({{ offset }}px);"
+                 onmouseenter="showCover(this, '/static/covers/{{ '%03d' | format(book.position) }}_{{ book.slug }}.jpg')"
                  onmouseleave="hideCover()"
                  onclick="window.open('/book/{{ book.id }}', '_blank')">
 
-                <div class="spine-left">
-                    <svg class="svg-auto-fit" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-                        <text x="0" y="0" class="text-title">{{ book.title }}</text>
-                    </svg>
-                </div>
+                <div class="spine-content-wrapper">
+                    <div class="spine-left">
+                        <svg class="svg-auto-fit" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+                            <text x="0" y="0" class="text-title">{{ book.title }}</text>
+                        </svg>
+                    </div>
 
-                <div class="spine-divider"></div>
-
-                <div class="spine-right">
-                    <svg class="svg-auto-fit" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-                        <text class="text-meta-block" x="0" y="0">
-                            <tspan x="0" dy="-0.6em" font-weight="700" font-size="40">{{ book.author.full_name }}</tspan>
-                            <tspan x="0" dy="1.2em" font-weight="500" font-size="32" fill-opacity="0.9">{{ book.year_raw }}</tspan>
-                        </text>
-                    </svg>
+                    <div class="spine-right">
+                        <svg class="svg-auto-fit" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+                            <text class="text-meta-block" x="0" y="0">
+                                <tspan x="0" dy="-0.6em" font-weight="700" font-size="40" class="author-name-span">{{ book.author.full_name }}</tspan>
+                                <tspan x="0" dy="1.2em" font-weight="500" font-size="32" fill-opacity="0.8">{{ book.year_raw }}</tspan>
+                            </text>
+                        </svg>
+                    </div>
                 </div>
 
             </div>
@@ -229,6 +328,22 @@
 <script>
     const popup = document.getElementById('global-cover-popup');
 
+    // === ПАЛИТРА ДЛЯ ГЕНЕРАЦИИ ЦВЕТОВ ПО АВТОРУ ===
+    // Только темно-коричневые, темно-зеленые и глубокие землистые тона.
+    const strictPalette = [
+        '#3D2314', // Классический темный дуб
+        '#2A1A10', // Глубокий кофейный
+        '#4A3728', // Коричневая кожа
+        '#243324', // Темный охотничий зеленый
+        '#1A2B1A', // Темный лесной
+        '#2F1E12', // Очень темный шоколад
+        '#362211', // Старая кожа
+        '#1B301B', // Болотный темный
+        '#3E2723', // Темная умбра
+        '#263226', // Темно-оливковый
+        '#421C02'  // Красное дерево (темное)
+    ];
+
     function showCover(element, imgUrl) {
         popup.style.backgroundImage = `url('${imgUrl}')`;
         popup.style.display = 'block';
@@ -240,24 +355,50 @@
         let top = rect.top - (popupHeight / 3);
 
         if (left + popupWidth > window.innerWidth) left = rect.left - popupWidth - 40;
-        if (top < 10) top = 10;
+        if (top < 100) top = 100;
         if (top + popupHeight > window.innerHeight) top = window.innerHeight - popupHeight - 10;
 
         popup.style.left = `${left}px`;
         popup.style.top = `${top}px`;
     }
 
-    function hideCover() {
-        popup.style.display = 'none';
+    function hideCover() { popup.style.display = 'none'; }
+
+    // === ЛОГИКА ЦВЕТА (ОДИН АВТОР = ОДИН ЦВЕТ) ===
+    function colorizeBooks() {
+        const books = document.querySelectorAll('.book-hor');
+
+        books.forEach(book => {
+            // Ищем имя автора внутри SVG
+            const authorEl = book.querySelector('.author-name-span');
+            if (!authorEl) return;
+
+            const authorName = authorEl.textContent.trim();
+
+            // Превращаем строку имени в число (хеш)
+            let hash = 0;
+            for (let i = 0; i < authorName.length; i++) {
+                hash = authorName.charCodeAt(i) + ((hash << 5) - hash);
+            }
+
+            // Получаем индекс цвета из палитры
+            const colorIndex = Math.abs(hash) % strictPalette.length;
+            const assignedColor = strictPalette[colorIndex];
+
+            // Применяем цвет
+            book.style.setProperty('--book-base-color', assignedColor);
+        });
     }
 
     function autoFitText() {
         document.querySelectorAll('.svg-auto-fit').forEach(svg => {
+            if(svg.closest('.hidden-book')) return;
+
             const content = svg.querySelector('text');
             if (!content) return;
             const bbox = content.getBBox();
             if (bbox.width === 0 || bbox.height === 0) return;
-            const paddingX = 4;
+            const paddingX = 8;
             const paddingY = 4;
             const vBoxX = bbox.x - paddingX;
             const vBoxY = bbox.y - paddingY;
@@ -268,29 +409,52 @@
     }
 
     document.fonts.ready.then(() => {
-        autoFitText();
-        manageBookGlow();
+        colorizeBooks(); // Сначала красим
+        autoFitText();   // Потом подгоняем текст
     });
 
     window.addEventListener('resize', autoFitText);
-    window.onload = autoFitText;
+    window.onload = function() {
+        colorizeBooks();
+        autoFitText();
+    };
 
-    function manageBookGlow() {
-        const hash = window.location.hash;
-        if (hash.startsWith('#book-')) {
-            const bookId = hash.substring(1);
-            const targetBook = document.getElementById(bookId);
-            if (targetBook) {
-                targetBook.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                targetBook.classList.add('active-glow');
-                setTimeout(() => {
-                    targetBook.classList.remove('active-glow');
-                    history.replaceState(null, null, window.location.pathname + window.location.search);
-                }, 10000);
+    const searchInput = document.getElementById('library-search');
+    const allBooks = document.querySelectorAll('.book-hor');
+    const allShelves = document.querySelectorAll('.shelf-row');
+    const noResultsMsg = document.getElementById('no-results-message');
+
+    searchInput.addEventListener('input', function(e) {
+        const query = e.target.value.toLowerCase().trim();
+        let visibleBooksCount = 0;
+
+        allBooks.forEach(book => {
+            const searchData = book.getAttribute('data-search');
+            if (searchData.includes(query)) {
+                book.classList.remove('hidden-book');
+                visibleBooksCount++;
+            } else {
+                book.classList.add('hidden-book');
             }
+        });
+
+        allShelves.forEach(shelf => {
+            const visibleBooksInShelf = shelf.querySelectorAll('.book-hor:not(.hidden-book)');
+            if (visibleBooksInShelf.length === 0) {
+                shelf.classList.add('hidden-shelf');
+            } else {
+                shelf.classList.remove('hidden-shelf');
+            }
+        });
+
+        if (visibleBooksCount === 0) {
+            noResultsMsg.style.display = 'block';
+        } else {
+            noResultsMsg.style.display = 'none';
         }
-    }
-    window.addEventListener('hashchange', manageBookGlow);
+
+        if(query !== "") { autoFitText(); }
+    });
 </script>
 
 </body>
