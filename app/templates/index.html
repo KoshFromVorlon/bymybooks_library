@@ -7,9 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=EB+Garamond:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Текстура темного дуба для фона */
             --wood: url('https://www.transparenttextures.com/patterns/dark-wood.png');
-            /* Цвета */
             --gold: #c5a05a;
             --gold-shadow: #8c6b30;
             --shelf-color: #261a12;
@@ -50,6 +48,7 @@
             box-shadow: inset 0 4px 10px rgba(0,0,0,0.8), 0 2px 5px rgba(197, 160, 90, 0.2);
             transition: all 0.3s ease;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            text-transform: uppercase;
         }
 
         #library-search:focus {
@@ -60,6 +59,7 @@
         #library-search::placeholder {
             color: rgba(197, 160, 90, 0.4);
             font-family: 'EB Garamond', serif;
+            text-transform: none;
         }
 
         .vault {
@@ -127,18 +127,13 @@
                         box-shadow 0.4s ease,
                         opacity 0.3s ease;
 
-            /* Цвет задается через JS */
             background-color: var(--book-base-color, #3D2314);
-
-            /* Flexbox для распределения секций */
             display: flex;
             align-items: stretch;
-
             border-right: none;
 
-            /* Текстура и бинты */
+            /* Бинты повторяются каждые 20%. Центр последнего бинта на 98.75% */
             background-image:
-            /* 1. БИНТЫ */
             repeating-linear-gradient(
                 90deg,
                 transparent,
@@ -148,14 +143,12 @@
                 rgba(0,0,0,0.5) 20%,
                 transparent 20%
             ),
-            /* 2. ОБЪЕМ КОЖИ */
             linear-gradient(to bottom,
                 rgba(0,0,0,0.5) 0%,
                 rgba(255,255,255,0.1) 20%,
                 transparent 50%,
                 rgba(0,0,0,0.6) 100%
             ),
-            /* 3. ШУМ */
             url('https://www.transparenttextures.com/patterns/leather.png');
 
             background-blend-mode: overlay, soft-light, multiply;
@@ -176,6 +169,38 @@
             box-shadow: 0 15px 30px rgba(0,0,0,1) !important;
         }
 
+        /* === МАЯЧОК СТАТУСА (ИЗМЕНЕНО) === */
+        .status-beacon {
+            position: absolute;
+            top: 7px; /* Небольшой отступ сверху */
+
+            /* ЦЕНТРИРОВАНИЕ НА БИНТЕ */
+            /* Последний бинт находится на 98.75% ширины. Ставим right на 1.25% */
+            right: 1.25%;
+            margin-right: -3px; /* Сдвигаем вправо на половину ширины (6px/2), чтобы встал ровно центром на линию */
+
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            z-index: 10;
+            border: 1px solid rgba(0,0,0,0.3); /* Тонкая темная обводка для контраста */
+        }
+
+        /* Благородный Зеленый (Изумрудный) */
+        .beacon-active {
+            /* Градиент создает эффект бусины */
+            background: radial-gradient(circle at 30% 30%, #2ecc71, #006400);
+            box-shadow: 0 0 5px rgba(46, 204, 113, 0.5); /* Легкое свечение */
+        }
+
+        /* Благородный Красный (Рубиновый) */
+        .beacon-missing {
+            /* Темно-красный с бликом */
+            background: radial-gradient(circle at 30% 30%, #e74c3c, #8b0000);
+            box-shadow: 0 0 3px rgba(139, 0, 0, 0.3);
+            opacity: 0.8;
+        }
+
         /* Классы для поиска */
         .hidden-book { display: none !important; }
         .hidden-shelf { display: none !important; }
@@ -193,7 +218,6 @@
              filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.8));
         }
 
-        /* СЕКЦИЯ НАЗВАНИЯ (80%) */
         .spine-left {
             flex: 0 0 80%;
             width: 80%;
@@ -206,7 +230,6 @@
             transform: perspective(500px) rotateY(2deg);
         }
 
-        /* СЕКЦИЯ АВТОРА (20%) */
         .spine-right {
             flex: 0 0 20%;
             width: 20%;
@@ -220,7 +243,6 @@
             position: relative;
         }
 
-        /* ЗОЛОТАЯ ПОЛОСКА */
         .spine-right::before {
             content: '';
             position: absolute;
@@ -259,7 +281,11 @@
 <body>
 
 <div class="search-container">
-    <input type="text" id="library-search" placeholder="Поиск в архивах..." autocomplete="off">
+    <input type="text"
+           id="library-search"
+           placeholder="Поиск..."
+           autocomplete="off"
+           oninput="this.value = this.value.toUpperCase()">
 </div>
 
 <div class="vault">
@@ -280,6 +306,12 @@
                  data-search="{{ book.title | lower }} {{ book.author.full_name | lower }} {{ book.year_raw | lower }}"
                  style="height: {{ thickness|int }}px; transform: translateX({{ offset }}px);"
                  onclick="window.open('/book/{{ book.id }}', '_blank')">
+
+                {% if book.pages > 0 %}
+                    <div class="status-beacon beacon-active" title="Файл загружен"></div>
+                {% else %}
+                    <div class="status-beacon beacon-missing" title="Пусто / Заглушка"></div>
+                {% endif %}
 
                 <div class="spine-content-wrapper">
                     <div class="spine-left">
@@ -307,62 +339,35 @@
 </div>
 
 <script>
-    // === ПАЛИТРА ДЛЯ ГЕНЕРАЦИИ ЦВЕТОВ ПО АВТОРУ ===
     const strictPalette = [
-        '#3D2314', // Классический темный дуб
-        '#2A1A10', // Глубокий кофейный
-        '#4A3728', // Коричневая кожа
-        '#243324', // Темный охотничий зеленый
-        '#1A2B1A', // Темный лесной
-        '#2F1E12', // Очень темный шоколад
-        '#362211', // Старая кожа
-        '#1B301B', // Болотный темный
-        '#3E2723', // Темная умбра
-        '#263226', // Темно-оливковый
-        '#421C02'  // Красное дерево (темное)
+        '#3D2314', '#2A1A10', '#4A3728', '#243324', '#1A2B1A', '#2F1E12', '#362211', '#1B301B', '#3E2723', '#263226', '#421C02'
     ];
 
-    // === ЛОГИКА ЦВЕТА (ОДИН АВТОР = ОДИН ЦВЕТ) ===
     function colorizeBooks() {
         const books = document.querySelectorAll('.book-hor');
-
         books.forEach(book => {
-            // Ищем имя автора внутри SVG
             const authorEl = book.querySelector('.author-name-span');
             if (!authorEl) return;
-
             const authorName = authorEl.textContent.trim();
-
-            // Превращаем строку имени в число (хеш)
             let hash = 0;
             for (let i = 0; i < authorName.length; i++) {
                 hash = authorName.charCodeAt(i) + ((hash << 5) - hash);
             }
-
-            // Получаем индекс цвета из палитры
             const colorIndex = Math.abs(hash) % strictPalette.length;
-            const assignedColor = strictPalette[colorIndex];
-
-            // Применяем цвет
-            book.style.setProperty('--book-base-color', assignedColor);
+            book.style.setProperty('--book-base-color', strictPalette[colorIndex]);
         });
     }
 
     function autoFitText() {
         document.querySelectorAll('.svg-auto-fit').forEach(svg => {
             if(svg.closest('.hidden-book')) return;
-
             const content = svg.querySelector('text');
             if (!content) return;
             const bbox = content.getBBox();
             if (bbox.width === 0 || bbox.height === 0) return;
             const paddingX = 8;
             const paddingY = 4;
-            const vBoxX = bbox.x - paddingX;
-            const vBoxY = bbox.y - paddingY;
-            const vBoxW = bbox.width + (paddingX * 2);
-            const vBoxH = bbox.height + (paddingY * 2);
-            svg.setAttribute('viewBox', `${vBoxX} ${vBoxY} ${vBoxW} ${vBoxH}`);
+            svg.setAttribute('viewBox', `${bbox.x - paddingX} ${bbox.y - paddingY} ${bbox.width + paddingX*2} ${bbox.height + paddingY*2}`);
         });
     }
 
